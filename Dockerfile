@@ -1,9 +1,12 @@
-# quay.io/vouch/vouch-proxy
-# https://github.com/vouch/vouch-proxy
 FROM golang:1.23 AS builder
 
 ARG UID=999
 ARG GID=999
+ARG TARGETARCH  # <-- injected automatically by BuildKit
+ENV GOARCH=$TARGETARCH
+ENV CGO_ENABLED=0
+ENV GOOS=linux
+
 LABEL maintainer="vouch@bnf.net"
 
 RUN mkdir -p ${GOPATH}/src/github.com/vouch/vouch-proxy
@@ -14,9 +17,8 @@ RUN groupadd -g $GID vouch \
 
 COPY . .
 
-
 RUN ./do.sh goget
-RUN ./do.sh gobuildstatic # see `do.sh` for vouch-proxy build details
+RUN ./do.sh gobuildstatic
 RUN ./do.sh install
 
 FROM scratch
