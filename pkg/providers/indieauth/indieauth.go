@@ -13,11 +13,10 @@ package indieauth
 import (
 	"bytes"
 	"encoding/json"
-	"io"
+	"golang.org/x/oauth2"
+	"io/ioutil"
 	"mime/multipart"
 	"net/http"
-
-	"golang.org/x/oauth2"
 
 	"github.com/vouch/vouch-proxy/pkg/cfg"
 	"github.com/vouch/vouch-proxy/pkg/providers/common"
@@ -91,7 +90,7 @@ func (Provider) GetUserInfo(r *http.Request, user *structs.User, customClaims *s
 		}
 	}()
 
-	data, _ := io.ReadAll(userinfo.Body)
+	data, _ := ioutil.ReadAll(userinfo.Body)
 	log.Infof("indieauth userinfo body: %s", string(data))
 	if err = common.MapClaims(data, customClaims); err != nil {
 		log.Error(err)

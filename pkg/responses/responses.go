@@ -11,6 +11,7 @@ OR CONDITIONS OF ANY KIND, either express or implied.
 package responses
 
 import (
+	"errors"
 	"html/template"
 	"net/http"
 
@@ -30,17 +31,17 @@ type Index struct {
 
 var (
 	indexTemplate *template.Template
+	errorTemplate *template.Template
 	log           *zap.SugaredLogger
-	// fastlog       *zap.Logger
+	fastlog       *zap.Logger
 
-	// errorTemplate *template.Template
-	// errNotAuthorized = errors.New("not authorized")
+	errNotAuthorized = errors.New("not authorized")
 )
 
 // Configure see main.go configure()
 func Configure() {
 	log = cfg.Logging.Logger
-	// fastlog = cfg.Logging.FastLogger
+	fastlog = cfg.Logging.FastLogger
 
 	log.Debugf("responses.Configure() attempting to parse embedded templates")
 	indexTemplate = template.Must(template.ParseFS(cfg.Templates, "templates/index.tmpl"))
@@ -132,4 +133,5 @@ func addErrandCancelRequest(r *http.Request) {
 	ctx = context.WithValue(ctx, cfg.ErrCtxKey, true)
 	*r = *r.Clone(ctx)
 	cancel() // we're done
+	return
 }

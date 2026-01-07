@@ -12,7 +12,7 @@ package alibaba
 
 import (
 	"encoding/json"
-	"io"
+	"io/ioutil"
 	"net/http"
 
 	"golang.org/x/oauth2"
@@ -48,7 +48,7 @@ func (Provider) GetUserInfo(r *http.Request, user *structs.User, customClaims *s
 			rerr = err
 		}
 	}()
-	data, _ := io.ReadAll(userinfo.Body)
+	data, _ := ioutil.ReadAll(userinfo.Body)
 	log.Infof("Alibaba userinfo body: %s", string(data))
 	if err = common.MapClaims(data, customClaims); err != nil {
 		log.Error(err)

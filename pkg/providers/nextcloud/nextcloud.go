@@ -12,10 +12,9 @@ package nextcloud
 
 import (
 	"encoding/json"
-	"io"
-	"net/http"
-
 	"golang.org/x/oauth2"
+	"io/ioutil"
+	"net/http"
 
 	"github.com/vouch/vouch-proxy/pkg/cfg"
 	"github.com/vouch/vouch-proxy/pkg/providers/common"
@@ -48,7 +47,7 @@ func (Provider) GetUserInfo(r *http.Request, user *structs.User, customClaims *s
 			rerr = err
 		}
 	}()
-	data, _ := io.ReadAll(userinfo.Body)
+	data, _ := ioutil.ReadAll(userinfo.Body)
 	log.Infof("Ocs userinfo body: %s", string(data))
 	if err = common.MapClaims(data, customClaims); err != nil {
 		log.Error(err)

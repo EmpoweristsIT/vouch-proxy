@@ -11,6 +11,7 @@ OR CONDITIONS OF ANY KIND, either express or implied.
 package cfg
 
 import (
+	"fmt"
 	"os"
 	"strconv"
 
@@ -105,7 +106,7 @@ func (logging) configure() {
 	// then we weren't configured via command line, check the config file
 	if !viper.IsSet(Branding.LCName + ".logLevel") {
 		// then we weren't configured via the config file, set the default
-		Cfg.LogLevel = Logging.DefaultLogLevel.String()
+		Cfg.LogLevel = fmt.Sprintf("%s", Logging.DefaultLogLevel)
 	}
 
 	if Cfg.LogLevel != Logging.AtomicLogLevel.Level().String() {

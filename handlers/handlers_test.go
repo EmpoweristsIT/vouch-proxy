@@ -17,6 +17,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"golang.org/x/oauth2"
 
 	"github.com/vouch/vouch-proxy/pkg/cfg"
 	"github.com/vouch/vouch-proxy/pkg/cookie"
@@ -26,9 +27,9 @@ import (
 	"github.com/vouch/vouch-proxy/pkg/structs"
 )
 
-// var (
-// 	token = &oauth2.Token{AccessToken: "123"}
-// )
+var (
+	token = &oauth2.Token{AccessToken: "123"}
+)
 
 // setUp load config file and then call Configure() for dependent packages
 func setUp(configFile string) {
