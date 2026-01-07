@@ -4,9 +4,24 @@
 
 Coming soon! Please document any work in progress here as part of your PR. It will be moved to the next tag when released.
 
+## v0.45.0
+
+- Implement a Discord provider that uses `Username` as the username to match against in the `whiteList` config
+  - Or uses `Username#Discriminator` if the Discriminator is present
+  - Or uses ID if `discord_use_ids` is set
+
+## v0.44.0
+
+- migrate to github.com/golang-jwt/jwt/v4
+
+## v0.43.0
+
+- support multi-platform / multi-arch builds for published Docker images including `linux/amd64` and `linux/arm64`
+
 ## v0.42.0
 
-- switch to viper mapstructure because it's needed starting from viper v1.20, https://github.com/spf13/viper/blob/master/UPGRADE.md#v120x
+- [fix auth to github](https://github.com/vouch/vouch-proxy/pull/601)
+- cleanup of minor issues flagged by gostaticcheck
 
 ## v0.41.0
 
