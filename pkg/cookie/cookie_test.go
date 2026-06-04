@@ -50,7 +50,8 @@ func TestCookie(t *testing.T) {
 	ckValue1 := "charlie"
 	ckValue2 := "delta"
 	expectedValue := fmt.Sprintf("%s%s", ckValue1, ckValue2)
-	r := &http.Request{
+
+	r1 := &http.Request{
 		Header: map[string][]string{
 			"Cookie": {
 				fmt.Sprintf("%s_1of2=%s", cfg.Cfg.Cookie.Name, ckValue1),
@@ -58,12 +59,54 @@ func TestCookie(t *testing.T) {
 			},
 		},
 	}
-	r.Cookies()
-	s, err := Cookie(r)
-	if err != nil {
-		t.Error(err)
+
+	r2TooBigCookieHeader := map[string][]string{}
+	parts := maxCookieParts + 1
+	for i := 1; i < parts; i++ {
+		r2TooBigCookieHeader["Cookie"] = append(r2TooBigCookieHeader["Cookie"], fmt.Sprintf("%s_%dof%d=%d", cfg.Cfg.Cookie.Name, i, parts, i))
 	}
-	if expectedValue != s {
-		t.Errorf("expected \"%s\" received \"%s\"", expectedValue, s)
+	r2 := &http.Request{
+		Header: r2TooBigCookieHeader,
+	}
+
+	r3 := &http.Request{
+		Header: map[string][]string{"Cookie": {fmt.Sprintf("%s_1of100000000000=%s", cfg.Cfg.Cookie.Name, ckValue1)}},
+	}
+
+	r4 := &http.Request{
+		Header: map[string][]string{"Cookie": {fmt.Sprintf("%s_100000000000000of32=%s", cfg.Cfg.Cookie.Name, ckValue1)}},
+	}
+
+	tests := []struct {
+		name    string // description of this test case
+		r       *http.Request
+		want    string
+		wantErr bool
+	}{
+		{"_alpha_beta", r1, expectedValue, false},
+		{"too many parts", r2, "very big", true},
+		{"just one but it claims to be big", r3, "very very big", true},
+		{"just one but it has a big X in XofY", r4, "very very big", true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// prepare the test by rendering the cookies into the response object
+			tt.r.Cookies()
+
+			got, gotErr := Cookie(tt.r)
+			if gotErr != nil {
+				if !tt.wantErr {
+					t.Errorf("Cookie() failed: %v", gotErr)
+				}
+				return
+			}
+			if tt.wantErr {
+				t.Fatal("Cookie() succeeded unexpectedly")
+			}
+			// should match
+			if got != tt.want {
+				t.Errorf("Cookie() = %v, want %v", got, tt.want)
+			}
+		})
 	}
 }

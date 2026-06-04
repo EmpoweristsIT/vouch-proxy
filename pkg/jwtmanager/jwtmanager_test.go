@@ -16,10 +16,11 @@ import (
 	"path/filepath"
 	"testing"
 
+	jwt "github.com/golang-jwt/jwt/v5"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/vouch/vouch-proxy/pkg/cfg"
 	"github.com/vouch/vouch-proxy/pkg/structs"
-
-	"github.com/stretchr/testify/assert"
 )
 
 var (
@@ -53,18 +54,22 @@ func init() {
 		customClaims.Claims,
 		t1.PAccessToken,
 		t1.PIdToken,
-		StandardClaims,
+		RegisteredClaims,
 	}
+}
 
+func setUp(t *testing.T, cfgFile string) {
+	rootDir := os.Getenv(cfg.Branding.UCName + "_ROOT")
+	if err := os.Setenv(cfg.Branding.UCName+"_CONFIG", filepath.Join(rootDir, "config/testing", cfgFile)); err != nil {
+		t.Errorf("failed setting environment variable %s_CONFIG", cfg.Branding.UCName)
+	}
+	Configure()
+	cfg.InitForTestPurposes()
 }
 
 func TestClaimsHMAC(t *testing.T) {
-	rootDir := os.Getenv(cfg.Branding.UCName + "_ROOT")
 	for _, cfgFile := range []string{"test_config.yml", "test_config_rsa.yml"} {
-		if err := os.Setenv(cfg.Branding.UCName+"_CONFIG", filepath.Join(rootDir, "config/testing", cfgFile)); err != nil {
-			t.Errorf("failed setting environment variable %s_CONFIG", cfg.Branding.UCName)
-		}
-
+		setUp(t, cfgFile)
 		json.Unmarshal([]byte(claimjson), &customClaims.Claims)
 
 		log.Debugf("jwt config %s %d", string(cfg.Cfg.JWT.Secret), cfg.Cfg.JWT.MaxAge)
@@ -85,6 +90,7 @@ func TestClaimsHMAC(t *testing.T) {
 }
 
 func TestClaims(t *testing.T) {
+	setUp(t, "test_config.yml")
 	aud = audience()
 	log.Debugf("jwt config %s %d", string(cfg.Cfg.JWT.Secret), cfg.Cfg.JWT.MaxAge)
 	assert.NotEmpty(t, cfg.Cfg.JWT.Secret)
@@ -101,4 +107,65 @@ func TestClaims(t *testing.T) {
 	log.Infof("utsParsed: %+v", utsParsed)
 	log.Infof("Audience: %+v", aud)
 	assert.True(t, SiteInToken(cfg.Cfg.Domains[0], utsParsed))
+}
+
+func TestVouchClaims_SiteInAudience(t *testing.T) {
+	tests := []struct {
+		name    string
+		cfgFile string
+		s       string
+		want    bool
+	}{
+		{"exact match", "test_config_oauth_claims.yml", "vouch.github.io", true},
+		{"subdomain match", "test_config_oauth_claims.yml", "sub.vouch.github.io", true},
+		{"suffix attack", "test_config_oauth_claims.yml", "evilvouch.github.io", false},
+		{"attacker parent domain", "test_config_oauth_claims.yml", "vouch.github.io.attacker.com", false},
+		{"attacker combined", "test_config_oauth_claims.yml", "evilvouch.github.io.attacker.com", false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			setUp(t, tt.cfgFile)
+			jwt, err := NewVPJWT(u1, customClaims, t1)
+			assert.NoError(t, err)
+			claims, err := ClaimsFromJWT(jwt)
+			if err != nil {
+				t.Fatalf("could not construct receiver type: %v", err)
+			}
+			got := claims.SiteInAudience(tt.s)
+			if got != tt.want {
+				t.Errorf("SiteInAudience(%q) = %v, want %v", tt.s, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestSiteInAudienceLegacyFormat(t *testing.T) {
+	claims := &VouchClaims{
+		RegisteredClaims: jwt.RegisteredClaims{
+			Audience: jwt.ClaimStrings{"vouch.github.io,other.test"},
+		},
+	}
+
+	tests := []struct {
+		name string
+		s    string
+		want bool
+	}{
+		{"exact first", "vouch.github.io", true},
+		{"exact second", "other.test", true},
+		{"subdomain first", "sub.vouch.github.io", true},
+		{"subdomain second", "sub.other.test", true},
+		{"suffix attack first", "evilvouch.github.io", false},
+		{"suffix attack second", "evilother.test", false},
+		{"attacker parent", "vouch.github.io.attacker.com", false},
+		{"unrelated", "evil.com", false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := claims.SiteInAudience(tt.s)
+			if got != tt.want {
+				t.Errorf("SiteInAudience(%q) = %v, want %v", tt.s, got, tt.want)
+			}
+		})
+	}
 }

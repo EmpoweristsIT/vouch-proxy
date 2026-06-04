@@ -4,6 +4,27 @@
 
 Coming soon! Please document any work in progress here as part of your PR. It will be moved to the next tag when released.
 
+## v0.48.0
+
+- improve checks of the number of parts of multipart cookies
+
+## v0.47.2
+
+- fix [#608](https://github.com/vouch/vouch-proxy/issues/608) accomodating golang-jwt/jwt/v5 audience string format - HT @macourteau
+
+## v0.47.1
+
+- set Cookie.Expires to Jan 1 1970 to delete the VP cookie in a manner most browsers will comply with
+
+## v0.47.0
+
+- improve host check against jwt audience claim
+- upgrade to github.com/golang-jwt/jwt/v5
+
+## v0.46.0
+
+- upgrade golang to `v1.26` from `v1.23`
+
 ## v0.45.0
 
 - Implement a Discord provider that uses `Username` as the username to match against in the `whiteList` config
