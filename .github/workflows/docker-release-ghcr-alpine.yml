@@ -13,7 +13,7 @@ env:
 
 
 jobs:
-  publish-to-docker-quayio:
+  publish-to-docker-ghcr-alpine:
     runs-on: ubuntu-latest
 
     steps:
