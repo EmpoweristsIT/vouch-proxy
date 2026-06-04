@@ -2,12 +2,8 @@ name: Publish Docker image to Ghcr.io using Dockerfile.alpine
 
 on:
   push:
-    branches:
-      - main
-      - dev
-
     tags:
-      - '*'
+      - 'v*'
 
 env:
   # Use docker.io for Docker Hub if empty
@@ -45,9 +41,9 @@ jobs:
           flavor: |
             prefix=alpine-,onlatest=true
           tags: |
-            type=ref,event=branch
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=testing-alpine
 
       - name: Build and push Docker image using Dockerfile.alpine
         uses: docker/build-push-action@ad44023a93711e3deb337508980b4b5e9bcdc5dc

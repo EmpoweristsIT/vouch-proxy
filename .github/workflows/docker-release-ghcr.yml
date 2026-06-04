@@ -2,11 +2,8 @@ name: Publish Docker image to Ghcr.io
 
 on:
   push:
-    branches:
-      - master
-      - dev
     tags:
-      - '*'
+      - 'v*'
 
 env:
   # Use docker.io for Docker Hub if empty
@@ -41,9 +38,9 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=ref,event=branch
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=testing
 
       - name: Build and push Docker image using Dockerfile
         uses: docker/build-push-action@ad44023a93711e3deb337508980b4b5e9bcdc5dc
