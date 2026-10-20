@@ -34,7 +34,7 @@ const comma = ","
 // VouchClaims jwt Claims specific to vouch
 type VouchClaims struct {
 	Username     string `json:"username"`
-	CustomClaims map[string]interface{}
+	CustomClaims map[string]any
 	PAccessToken string
 	PIdToken     string
 	jwt.RegisteredClaims
@@ -138,7 +138,12 @@ func SiteInToken(site string, token *jwt.Token) bool {
 func ParseTokenString(tokenString string) (*jwt.Token, error) {
 	log.Debugf("tokenString length: %d", len(tokenString))
 	if cfg.Cfg.JWT.Compress {
-		tokenString = decodeAndDecompressTokenString(tokenString)
+		decompressedTokenString, err := decodeAndDecompressTokenString(tokenString)
+		if err != nil {
+			log.Debugf("Error decompressing token: %v", err)
+			return nil, err
+		}
+		tokenString = decompressedTokenString
 		log.Debugf("decompressed tokenString length %d", len(tokenString))
 	}
 
@@ -147,7 +152,7 @@ func ParseTokenString(tokenString string) (*jwt.Token, error) {
 		log.Errorf("%s", err)
 	}
 
-	return jwt.ParseWithClaims(tokenString, &VouchClaims{}, func(token *jwt.Token) (interface{}, error) {
+	return jwt.ParseWithClaims(tokenString, &VouchClaims{}, func(token *jwt.Token) (any, error) {
 		// return jwt.ParseWithClaims(tokenString, &VouchClaims{}, func(token *jwt.Token) (interface{}, error) {
 		if token.Method != jwt.GetSigningMethod(cfg.Cfg.JWT.SigningMethod) {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
@@ -164,7 +169,7 @@ func (claims *VouchClaims) SiteInAudience(s string) bool {
 	for _, a := range claims.Audience {
 		// jwt/v4 serialized the audience as a comma-separated string;
 		// jwt/v5 deserializes that into a single-element []string.
-		for _, d := range strings.Split(a, comma) {
+		for d := range strings.SplitSeq(a, comma) {
 			if s == d || strings.HasSuffix(s, "."+d) {
 				log.Debugf("site %s is found for claims.Audience %s", s, d)
 				return true
@@ -185,25 +190,30 @@ func PTokenClaims(ptoken *jwt.Token) (*VouchClaims, error) {
 	return ptokenClaims, nil
 }
 
-func decodeAndDecompressTokenString(encgzipss string) string {
+const maxDecompressedJWTSize = 1 << 20 // 1 MiB
+
+func decodeAndDecompressTokenString(encgzipss string) (string, error) {
 	var gzipss []byte
 	// gzipss, err := url.QueryUnescape(encgzipss)
 	gzipss, err := base64.URLEncoding.DecodeString(encgzipss)
 	if err != nil {
-		log.Debugf("Error in Base64decode: %v", err)
+		return "", fmt.Errorf("Error in Base64decode: %w", err)
 	}
 
 	breader := bytes.NewReader(gzipss)
 	zr, err := gzip.NewReader(breader)
 	if err != nil {
-		log.Debugf("Error reading gzip data: %v", err)
-		return ""
+		return "", fmt.Errorf("Error reading gzip data: %w", err)
 	}
-	if err := zr.Close(); err != nil {
-		log.Debugf("Error decoding token: %v", err)
+	defer zr.Close()
+	ss, err := io.ReadAll(io.LimitReader(zr, maxDecompressedJWTSize+1))
+	if err != nil {
+		return "", fmt.Errorf("Error decoding token: %w", err)
 	}
-	ss, _ := io.ReadAll(zr)
-	return string(ss)
+	if len(ss) > maxDecompressedJWTSize {
+		return "", fmt.Errorf("decompressed JWT exceeds maximum size of %d bytes", maxDecompressedJWTSize)
+	}
+	return string(ss), nil
 }
 
 func compressAndEncodeTokenString(ss string) (string, error) {

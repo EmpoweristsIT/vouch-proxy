@@ -4,9 +4,28 @@
 
 Coming soon! Please document any work in progress here as part of your PR. It will be moved to the next tag when released.
 
-## v0.48.0
+## v0.50.0
 
-- improve checks of the number of parts of multipart cookies
+- avoid potential gzip compression bomb
+
+## v0.49.2
+
+- [improve multipart cookie checks](https://github.com/vouch/vouch-proxy/issues/615) (even better) HT @kanywst 
+
+## v0.49.1
+
+- upgrade `golang.org/x/net` to `v0.59.0` and other module upgrades
+
+## v0.49.0
+
+- upgrade golang to `v1.27` from `v1.26`
+- updates suggested by `go fix`
+
+## v0.48.0 SECURITY UPDATE
+
+- fixes [Unbounded Multipart Cookie Allocation DoS in vouch-proxy](https://github.com/vouch/vouch-proxy/security/advisories/GHSA-qqff-5854-px68) 
+  - improve checks of the number of parts of multipart cookies
+  - set limit of number of cookie parts
 
 ## v0.47.2
 
