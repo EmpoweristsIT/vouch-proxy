@@ -172,7 +172,20 @@ _redact() {
   done
 }
 
+# generate the RSA keypair used by config/testing/test_config_rsa.yml (gitignored)
+_test_keys() {
+  TEST_PRIVATE_KEY_FILE="$SDIR/config/testing/rsa.key"
+  TEST_PUBLIC_KEY_FILE="$SDIR/config/testing/rsa.pub"
+  if [[ ! -f "$TEST_PRIVATE_KEY_FILE" ]]; then
+    openssl genrsa -out "$TEST_PRIVATE_KEY_FILE" 4096
+  fi
+  if [[ ! -f "$TEST_PUBLIC_KEY_FILE" ]]; then
+    openssl rsa -in "$TEST_PRIVATE_KEY_FILE" -pubout > "$TEST_PUBLIC_KEY_FILE"
+  fi
+}
+
 coverage() {
+  _test_keys
   mkdir -p .cover && go test -v -coverprofile=.cover/cover.out ./...
 }
 
@@ -194,14 +207,7 @@ _tests() {
     export VOUCH_CONFIG="$SDIR/config/testing/test_config.yml"
   fi
 
-  TEST_PRIVATE_KEY_FILE="$SDIR/config/testing/rsa.key"
-  TEST_PUBLIC_KEY_FILE="$SDIR/config/testing/rsa.pub"
-  if [[ ! -f "$TEST_PRIVATE_KEY_FILE" ]]; then
-    openssl genrsa -out "$TEST_PRIVATE_KEY_FILE" 4096
-  fi
-  if [[ ! -f "$TEST_PUBLIC_KEY_FILE" ]]; then
-    openssl rsa -in "$TEST_PRIVATE_KEY_FILE" -pubout > "$TEST_PUBLIC_KEY_FILE"
-  fi
+  _test_keys
 
   go get -t ./...
   # test all the things
